@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Orange Mail</title>
+<style>
+:root{--bg:#f6f8fc;--surface:#fff;--text:#1f1f1f;--muted:#5f6368;--line:#e3e6ea;--hover:#eef1f6;--unread:#fff;--read:#f2f6fc;--accent:#e8710a;--sel:color-mix(in srgb,var(--accent) 22%,var(--surface));--compose:color-mix(in srgb,var(--accent) 30%,var(--surface));--star:#f4b400;--danger:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1c1e;--surface:#252629;--text:#e6e6e6;--muted:#a0a4a9;--line:#38393d;--hover:#2f3033;--unread:#252629;--read:#1f2022;}}
+:root[data-theme="dark"]{--bg:#1b1c1e;--surface:#252629;--text:#e6e6e6;--muted:#a0a4a9;--line:#38393d;--hover:#2f3033;--unread:#252629;--read:#1f2022;}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.4 "Google Sans",Roboto,"Segoe UI",system-ui,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;border-radius:999px;padding:6px 10px}
+button:hover{background:var(--hover)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#app{display:grid;grid-template-rows:64px 1fr;height:100%}
+header{display:flex;align-items:center;gap:12px;padding:0 16px}
+.logo{display:flex;align-items:center;gap:8px;font-size:21px;color:var(--muted);width:220px;white-space:nowrap}
+
+#q{flex:1;max-width:680px;height:46px;border:0;border-radius:999px;background:var(--hover);padding:0 20px;color:var(--text);font-size:15px}
+#q:focus{background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.av{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:600}
+main{display:grid;grid-template-columns:220px 1fr;min-height:0}
+nav{padding:8px 8px 0 8px;overflow:auto}
+#compose{display:flex;gap:10px;align-items:center;background:var(--compose);border-radius:16px;padding:16px 22px;font-weight:500;margin:4px 0 14px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+#compose:hover{box-shadow:0 2px 8px rgba(0,0,0,.3);background:var(--compose)}
+.nv{display:flex;align-items:center;width:100%;gap:14px;border-radius:0 999px 999px 0;padding:6px 16px;height:32px;text-align:left;margin-left:-8px;padding-left:24px}
+.nv.on{background:var(--sel);font-weight:700}
+.nv .n{margin-left:auto;font-size:12px}
+.pane{background:var(--surface);border-radius:16px 16px 0 0;margin-right:16px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.bar{display:flex;align-items:center;gap:6px;padding:8px 16px;border-bottom:1px solid var(--line);min-height:48px}
+.bar .sp{margin-left:auto;color:var(--muted);font-size:12px}
+#list{overflow:auto;flex:1}
+.row{display:grid;grid-template-columns:28px 28px 190px 1fr auto;align-items:center;gap:8px;padding:0 16px;height:40px;border-bottom:1px solid var(--line);cursor:pointer;background:var(--read)}
+.row.u{background:var(--unread);font-weight:700}
+.row:hover{box-shadow:inset 1px 0 var(--line),0 1px 3px rgba(0,0,0,.2);position:relative}
+.row .sn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}.row .dt{white-space:nowrap}
+.row .sn span{font-weight:400;color:var(--muted)}
+.row .dt{font-size:12px;color:var(--muted)}
+.row.u .dt{color:var(--text)}
+.st{color:var(--muted);padding:2px 4px;font-size:18px;line-height:1}
+.st.on{color:var(--star)}
+.empty{padding:64px 24px;text-align:center;color:var(--muted)}
+#view{overflow:auto;flex:1;padding:20px 32px 40px}
+#view h1{font-size:22px;font-weight:400;margin:0 0 20px}
+.who{display:flex;gap:12px;align-items:center;margin-bottom:20px}
+.who .av{margin:0;width:40px;height:40px}
+.who small{color:var(--muted);display:block}
+.body{white-space:pre-wrap;max-width:70ch;font-size:14.5px;line-height:1.6}
+.reply{margin-top:28px;display:flex;gap:10px}
+.reply button{border:1px solid var(--line);border-radius:999px;padding:9px 20px}
+#win{position:fixed;right:24px;bottom:0;width:min(520px,calc(100vw - 16px));background:var(--surface);border-radius:12px 12px 0 0;box-shadow:0 8px 30px rgba(0,0,0,.35);display:none;flex-direction:column;z-index:5;padding-bottom:env(safe-area-inset-bottom,0px)}
+#win.open{display:flex}
+#win .hd{background:var(--sel);padding:10px 14px;border-radius:12px 12px 0 0;display:flex;font-weight:500}
+#win .hd button{margin-left:auto;padding:0 8px}
+#win input,#win textarea{border:0;border-bottom:1px solid var(--line);padding:10px 14px;background:transparent;color:var(--text);font:inherit;width:100%}
+#win textarea{height:260px;resize:none;border:0}
+#win .ft{padding:10px 14px;display:flex;gap:10px;align-items:center}
+.send{background:var(--accent);color:#fff;padding:9px 22px;border-radius:999px;font-weight:500}
+.send:hover{background:var(--accent);opacity:.9}
+#toast{position:fixed;left:24px;bottom:24px;background:#323232;color:#fff;padding:12px 18px;border-radius:6px;display:none;z-index:9}
+#menu{display:none}
+@media (max-width:760px){
+ .logo{width:auto}.logo span{display:none}#menu{display:inline-block}
+ main{grid-template-columns:1fr}
+ nav{position:fixed;inset:64px auto 0 0;width:240px;background:var(--bg);z-index:4;transform:translateX(-100%);transition:transform .2s;padding-top:calc(8px + env(safe-area-inset-top,0px))}
+ nav.show{transform:none;box-shadow:4px 0 16px rgba(0,0,0,.3)}
+ .pane{margin:0;border-radius:0}
+ .row{grid-template-columns:36px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:4px;row-gap:2px;height:auto;padding:10px 12px}
+ .row>span:first-child{display:none}
+ .row .st{grid-column:1;grid-row:1/3;align-self:start;justify-self:start}
+ .row .fr{grid-column:2;grid-row:1}
+ .row .dt{grid-column:3;grid-row:1}
+ .row .sj{grid-column:2/4;grid-row:2}
+ #view{padding:16px}
+ #win{right:0;width:100vw}
+}
+@media (prefers-reduced-motion:reduce){nav{transition:none}}
+body{background-size:cover;background-position:center;background-attachment:fixed}
+.pane{background:color-mix(in srgb,var(--surface) var(--panel,100%),transparent)}
+.hasbg .row{background:color-mix(in srgb,var(--read) var(--panel),transparent)}
+.hasbg .row.u{background:color-mix(in srgb,var(--unread) var(--panel),transparent)}
+.hasbg header{background:color-mix(in srgb,var(--bg) var(--panel),transparent);backdrop-filter:blur(8px)}
+@media (min-width:761px){.hasbg nav{background:color-mix(in srgb,var(--bg) var(--panel),transparent);backdrop-filter:blur(8px)}}
+button.av{padding:0;color:#fff}button.av:hover{background:var(--accent);opacity:.9}
+#gear{font-size:18px;margin-left:auto}
+#am{display:none;position:fixed;top:60px;right:16px;z-index:12;background:var(--surface);border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.35);min-width:230px;padding:8px;margin-top:env(safe-area-inset-top,0px)}
+#am button{display:block;width:100%;text-align:left;border-radius:8px;padding:9px 12px}
+#am .mh{padding:8px 12px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;color:var(--muted)}#am .mh b{color:var(--text)}
+#auth,#set{display:none;position:fixed;inset:0;z-index:20;place-items:center;padding:16px;overflow:auto}
+#auth{background:linear-gradient(135deg,#ffb74d,#e8710a)}
+#set{background:rgba(0,0,0,.45)}
+.card{background:var(--surface);border-radius:20px;padding:28px;width:min(420px,100%);box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.card h2{margin:6px 0 16px;font-size:22px;font-weight:500}
+.card input[type=text],.card input:not([type]),.card input[type=password]{width:100%;height:46px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--text);padding:0 14px;font:inherit;margin-bottom:12px}
+.alogo{display:flex;align-items:center;gap:8px;font-size:20px;color:var(--muted)}
+.ue{display:flex;align-items:center;gap:8px}.ue input{flex:1}.ue span{color:var(--muted);margin-bottom:12px;white-space:nowrap}
+#aerr{color:var(--danger);min-height:20px;margin:0 0 8px}
+.alt{color:var(--muted);margin:14px 0 0;text-align:center}.alt a{color:var(--accent)}
+.lb{margin:18px 0 8px;color:var(--muted)}
+.sw{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.swb{width:32px;height:32px;padding:0;border-radius:50%;border:2px solid transparent}
+.swb.on{outline:3px solid var(--text);outline-offset:2px}
+.sw input[type=color]{width:36px;height:36px;border:0;padding:0;background:none;cursor:pointer}
+.seg{display:flex;gap:8px;flex-wrap:wrap}.seg button{border:1px solid var(--line);padding:8px 16px}
+.seg button.on{background:var(--sel);border-color:var(--accent)}
+.prev{height:90px;border-radius:12px;background-size:cover;background-position:center;margin-top:12px}
+#dim{width:100%;accent-color:var(--accent)}
+.netn{margin:18px 8px 0;font-size:12px;color:var(--muted);line-height:1.5}
+#send:disabled{opacity:.6}
+#fd{display:none;position:fixed;inset:0;z-index:21;place-items:center;padding:16px;background:rgba(0,0,0,.45)}
+.fh{display:flex;align-items:center;margin:14px 0 4px 16px;color:var(--muted);font-weight:500}
+.fh button{margin-left:auto;font-size:18px;padding:0 10px}
+.nv .sn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#mvsel{margin-left:auto;border:1px solid var(--line);background:transparent;color:var(--text);border-radius:999px;padding:6px 10px;font:inherit}
+#mvsel option{background:var(--surface);color:var(--text)}
+#pk{display:none;position:fixed;inset:0;z-index:22;place-items:center;padding:16px;background:rgba(0,0,0,.45)}
+.pkl{max-height:48vh;overflow:auto;margin-top:4px}
+.pki{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border-radius:10px;padding:8px 12px}
+.pki small{color:var(--muted)}.pki.on{background:var(--sel)}
+.att{padding:0 14px;color:var(--muted)}.att button{padding:0 6px}
+#sk{margin-left:auto;display:grid;place-items:center;padding:8px}
+.mimg{display:block;max-width:100%;margin-top:20px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.notes{display:grid;grid-template-columns:260px 1fr;flex:1;min-height:0}
+.nl{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.nlist{overflow:auto;flex:1}
+.ni{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;border-radius:0;padding:10px 16px;border-bottom:1px solid var(--line)}
+.ni small{color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ni.on{background:var(--sel)}
+.ed{display:flex;flex-direction:column;overflow:auto;min-height:0;min-width:0}
+#ntitle{flex:1;min-width:80px;border:0;background:transparent;color:var(--text);font-size:20px;font-weight:500;font-family:inherit;padding:6px}
+.tb{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 16px;border-bottom:1px solid var(--line)}
+.tb select{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:8px;padding:5px 6px;font:inherit;max-width:150px}
+.tb button{border:1px solid var(--line);border-radius:8px;min-width:34px}
+.tb button.on{background:var(--sel);border-color:var(--accent)}
+.tb .cl{display:flex;align-items:center;gap:4px;font-weight:700;cursor:pointer}
+.tb input[type=color]{width:28px;height:28px;border:0;padding:0;background:none;cursor:pointer}
+.tb .lbl{color:var(--muted);margin-right:4px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;padding:8px 16px 0}
+.chip{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--sel)}
+.chip button{padding:3px 10px}
+.nb{min-height:240px;padding:16px 20px;outline:none;font-size:16px;line-height:1.6;font-family:inherit}
+.nb:empty:before{content:"Start typing your note…";color:var(--muted)}
+#cv{width:calc(100% - 32px);height:auto;aspect-ratio:900/420;margin:8px 16px 24px;border:1px dashed var(--muted);border-radius:12px;touch-action:none;cursor:crosshair}
+.mob{display:none}
+@media (max-width:760px){.notes{grid-template-columns:1fr}.notes.ed-open .nl{display:none}.notes:not(.ed-open) .ed{display:none}.mob{display:inline-block}}
+#bd{display:none;position:fixed;inset:0;z-index:21;place-items:center;padding:16px;background:rgba(0,0,0,.45)}
+.boo{display:grid;grid-template-columns:260px 1fr;flex:1;min-height:0}
+.ch{display:flex;flex-direction:column;min-height:0;min-width:0}
+#booms{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:8px}
+.bm{max-width:min(75%,520px);align-self:flex-start;background:var(--hover);border-radius:16px;padding:8px 12px;display:flex;flex-direction:column;gap:2px;word-break:break-word}
+.bm>span{white-space:pre-wrap}.bm small{opacity:.7;font-size:11px}
+.bm.me{align-self:flex-end;background:var(--accent);color:#fff}
+.cmp{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--line);align-items:flex-end}
+.cmp textarea{flex:1;resize:none;height:44px;border:1px solid var(--line);border-radius:22px;padding:11px 16px;background:transparent;color:var(--text);font:inherit}
+@media (max-width:760px){.boo{grid-template-columns:1fr}.boo.open .nl{display:none}.boo:not(.open) .ch{display:none}}
+#toast{z-index:40}
+#adm{display:none;position:fixed;inset:0;z-index:30;background:var(--bg);overflow:auto;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+.adbox{max-width:980px;margin:0 auto;padding:20px 16px 60px}
+.adh{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#ffb74d,#e8710a);color:#fff;border-radius:16px;padding:16px 20px}
+.adh h1{margin:0;font-size:22px;font-weight:500}.adh button{margin-left:auto;background:rgba(255,255,255,.25);color:#fff}
+.atabs{display:flex;gap:8px;margin:16px 0 4px}.atabs button{border:1px solid var(--line)}.atabs button.on{background:var(--sel);border-color:var(--accent)}
+.ac{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin:12px 0;padding:14px 16px}
+.ah{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+.ah small{display:block;color:var(--muted)}
+.aa{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.aa button{border:1px solid var(--line)}
+.am{border-top:1px solid var(--line);padding:10px 0}.am small{color:var(--muted);display:block}
+.am pre{white-space:pre-wrap;font:inherit;margin:6px 0 0}
+.am img{max-width:100%;border-radius:8px;margin-top:6px;background:#fff}
+#bagov{display:none;position:fixed;inset:0;z-index:25;background:#16171a;color:#f1f1f1;flex-direction:column;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+.bagtop{display:flex;gap:12px;align-items:center;padding:12px 16px}.bagtop #bagcode{color:#ffb74d;font-family:monospace;margin-left:auto}
+.bagtop button,.bagctl button{background:rgba(255,255,255,.14);color:#fff;padding:10px 16px}
+#bgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px;flex:1;padding:8px 12px;overflow:auto;align-content:center}
+.bt{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/9}
+.bt video{width:100%;height:100%;object-fit:cover}.bt .bn{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.6);padding:2px 8px;border-radius:8px;font-size:12px}
+#bagmsg{text-align:center;color:#ccc;margin:4px 16px;min-height:20px}
+.bagctl{display:flex;gap:10px;justify-content:center;align-items:center;padding:10px 16px 18px;flex-wrap:wrap}
+.bagctl select{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:999px;padding:10px 12px;font:inherit;max-width:180px}.bagctl option{color:#000}
+.bl{padding:16px;overflow:auto;display:grid;gap:12px;align-content:start}
+.bcard{border:1px solid var(--line);border-radius:14px;padding:14px 16px}.bcard p{margin:6px 0 10px;color:var(--muted)}
+.row2{display:flex;gap:8px;margin-top:8px}.row2 input{flex:1;height:42px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--text);padding:0 12px;font:inherit}
+.brow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);flex-wrap:wrap}.brow small{color:var(--muted);font-family:monospace}.brow button{border:1px solid var(--line)}
+#ringb{display:none;position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:35;background:var(--surface);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.4);padding:16px 20px;min-width:260px;text-align:center}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto&family=Open+Sans&family=Lato&family=Montserrat&family=Poppins&family=Playfair+Display&family=Merriweather&family=Lobster&family=Pacifico&family=Dancing+Script&family=Caveat&family=Oswald&family=Raleway&family=Nunito&family=Bebas+Neue&family=Indie+Flower&family=Permanent+Marker&family=Amatic+SC&family=Inconsolata&family=Abril+Fatface&family=Great+Vibes&family=Orbitron&family=Special+Elite&display=swap">
+</head>
+<body>
+<div id="app">
+ <header>
+  <button id="menu" aria-label="Menu">☰</button>
+  <div class="logo"><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="18" r="11.5" fill="#f58a07"/><circle cx="16" cy="18" r="11.5" fill="none" stroke="#d96d00" stroke-width="1"/><ellipse cx="12" cy="13" rx="3.5" ry="2.2" fill="#fff" opacity=".28" transform="rotate(-35 12 13)"/><path d="M16 7c0-2 1-3.2 2.4-3.8" stroke="#6b4a1f" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M16.5 7.2c1.5-2.6 4.6-3.2 7.2-2-1 2.7-4 3.6-7.2 2z" fill="#4c9a2a"/></svg><span>Orange Mail</span></div>
+  <input id="q" type="search" placeholder="Search mail" aria-label="Search mail">
+  <button id="gear" aria-label="Customize">⚙</button><button class="av" id="avb" aria-label="Account menu">Y</button>
+ </header>
+ <main>
+  <nav id="nav">
+   <button id="compose">✎ Compose</button>
+   <div id="folders"></div>
+   <p id="net" class="netn"></p>
+  </nav>
+  <section class="pane" id="pane"></section>
+ </main>
+</div>
+<div id="am"></div>
+<div id="ringb" role="alertdialog" aria-label="Incoming call"></div>
+<div id="bagov"><div class="bagtop"><b>🛍 Oranges in a Bag</b><span id="bagcode"></span><button id="bagcopy">Copy code</button></div><div id="bgrid"></div><p id="bagmsg" role="status"></p><div class="bagctl"><button id="bmic" aria-label="Mute or unmute">🎤</button><button id="bcam" aria-label="Camera on or off">📷</button><button id="bshare" aria-label="Share your screen">🖥 Share screen</button><select id="blink" aria-label="Link this Bag to a Bowl"></select><button id="bleave" style="background:#d93025;color:#fff">Leave</button></div></div>
+<div id="adm"><div class="adbox" id="admbox"></div></div>
+<div id="bd"><div class="card" id="bdbox"></div></div>
+<div id="pk"><div class="card"><h2 id="pkh"></h2><input id="pkq" placeholder="Search" aria-label="Search"><div id="pkl" class="pkl"></div><div class="seg" style="margin-top:14px"><button class="send" id="pkx">Done</button></div></div></div>
+<div id="fd"><div class="card" id="fdbox"></div></div>
+<div id="auth"><div class="card" id="authbox"></div></div>
+<div id="set"><div class="card"><div id="setbody"></div><div class="seg" style="margin-top:22px"><button class="send" id="closeset">Done</button></div></div></div>
+<input type="file" id="bgf" accept="image/*" hidden>
+<div id="win" role="dialog" aria-label="New message">
+ <div class="hd"><span id="wt">New message</span><button id="x" aria-label="Close">✕</button></div>
+ <input id="to" placeholder="name@oj.mail" aria-label="To">
+ <input id="sub" placeholder="Subject" aria-label="Subject">
+ <textarea id="msg" aria-label="Message"></textarea>
+ <div id="att" class="att"></div>
+ <div class="ft"><button class="send" id="send">Send</button><button id="disc">Discard</button><button id="sk" aria-label="Sketchpad: pull in a note" title="Sketchpad: pull in a note"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="13" height="18" rx="2"/><path d="M8 8h5M8 12h3"/><path d="M20.5 8.5l-7 7-3 .8.8-3 7-7a1.4 1.4 0 012 2z"/></svg></button></div>
+</div>
+<div id="toast" role="status"></div>
+<script>
+let ME="";
+const SEED=()=>[];
+let mails=[],folders=[],notes=[],curNote=null,view="mail",attach=null,curBoo=null,booDraft="",nid=100,folder="inbox",open=null,query="",sel=null,authMode="in";
+const F=[["inbox","Inbox","▭"],["starred","Starred","☆"],["sent","Sent","➤"],["drafts","Drafts","✎"],["trash","Trash","🗑"]];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function fmt(t){const d=new Date(t),n=new Date();return d.toDateString()==n.toDateString()?d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):d.toLocaleDateString([],{month:"short",day:"numeric"})}
+function inFolder(m){return folder=="starred"?m.s&&m.f!="trash":m.f==folder}
+function toast(t){const e=$("#toast");e.textContent=t;e.style.display="block";clearTimeout(toast.h);toast.h=setTimeout(()=>e.style.display="none",2600)}
+const fname=k=>(F.find(x=>x[0]==k)||[0,(folders.find(x=>x.id==k)||{}).name||"Folder"])[1];
+function renderNav(){
+ const cnt=k=>mails.filter(m=>m.f==k&&m.u).length;
+ $("#folders").innerHTML=F.map(([k,l,i])=>{const n=k=="inbox"?cnt("inbox"):k=="drafts"?mails.filter(m=>m.f=="drafts").length:0;
+ return `<button class="nv ${view=="mail"&&folder==k?"on":""}" data-f="${k}"><span>${i}</span>${l}<span class="n">${n||""}</span></button>`}).join("")+
+ `<button class="nv ${view=="notes"?"on":""}" data-v="notes"><span>📝</span>Orange Notes</button><button class="nv ${view=="boo"?"on":""}" data-v="boo"><span>🍊</span>Bowl of Oranges<span class="n">${booUnread()||""}</span></button><button class="nv ${view=="bag"?"on":""}" data-v="bag"><span>🛍</span>Oranges in a Bag</button>${(DB.accounts[DB.current]||{}).admin?`<button class="nv" data-adm="1"><span>🛡</span>Admin panel</button>`:""}<div class="fh">Folders<button id="newf" aria-label="New folder">＋</button></div>`+
+ folders.map(f=>`<button class="nv ${view=="mail"&&folder==f.id?"on":""}" data-f="${f.id}"><span>📁</span><span class="sn">${esc(f.name)}</span><span class="n">${cnt(f.id)||""}</span></button>`).join("");
+}
+function render(){
+ if(speaking&&(view!="mail"||open!=spokenId))stopSpeak();
+ if(view=="boo"&&curBoo)booMark();save();renderNav();
+ if(view=="boo"){renderBoo();return}
+ if(view=="bag"){renderBagLobby();return}
+ if(view=="notes"){const ae=document.activeElement;if(!(ae&&ae.closest&&ae.closest("#notes .ed")))renderNotes();return}
+ const p=$("#pane");
+ if(open){const m=mails.find(x=>x.id==open);
+  p.innerHTML=`<div class="bar"><button id="back" aria-label="Back">←</button><button data-a="del" aria-label="Delete">🗑</button><button data-a="unread" aria-label="Mark as unread">✉</button><button data-a="star" aria-label="Star">${m.s?"★":"☆"}</button><button id="speak" aria-label="${speaking?"Stop reading":"Read email aloud"}" title="${speaking?"Stop reading":"Read email aloud"}">${speaking?"⏹":"🔊"}</button>${m.f=="drafts"?"":`<select id="mvsel" aria-label="Move to folder"><option value="">Move to…</option>${m.f!="inbox"?`<option value="inbox">Inbox</option>`:""}${folders.filter(x=>x.id!=m.f).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")}<option value="__new">New folder…</option></select>`}</div>
+  <div id="view"><h1>${esc(m.sub||"(no subject)")}</h1><div class="who"><div class="av">${esc((m.from||"?")[0])}</div><div><b>${esc(m.from)}</b> &lt;${esc(m.addr)}&gt;<small>${m.f=="sent"||m.f=="drafts"?"to "+esc(m.to||""):"to me"} · ${new Date(m.t).toLocaleString()}</small></div></div>
+  <div class="body">${esc(m.body)}</div>${m.img?`<img class="mimg" src="${m.img}" alt="Attached sketch">`:""}
+  ${["sent","drafts","trash"].includes(m.f)?"":`<div class="reply"><button data-a="reply">↩ Reply</button><button data-a="fwd">➦ Forward</button></div>`}</div>`;
+  return;
+ }
+ let list=mails.filter(inFolder).filter(m=>!query||(m.sub+m.body+m.from+m.addr).toLowerCase().includes(query)).sort((a,b)=>b.t-a.t);
+ const title=fname(folder),cust=folders.some(x=>x.id==folder);
+ p.innerHTML=`<div class="bar"><b>${title}</b><span class="sp">${list.length} ${list.length==1?"conversation":"conversations"}</span>${folder=="trash"&&list.length?`<button id="empty">Empty trash</button>`:""}${cust?`<button id="renf">Rename</button><button id="delf">Delete folder</button>`:""}</div><div id="list">`+
+ (list.length?list.map(m=>`<div class="row ${m.u?"u":""}" data-id="${m.id}" tabindex="0"><span></span><button class="st ${m.s?"on":""}" data-star="${m.id}" aria-label="Star">${m.s?"★":"☆"}</button><span class="fr sn">${esc(m.f=="sent"||m.f=="drafts"?"To: "+(m.to||"(no recipient)"):m.from)}</span><span class="sn sj">${esc(m.sub||"(no subject)")} <span>– ${esc(m.body.replace(/\n/g," ").slice(0,90))}</span></span><span class="dt">${fmt(m.t)}</span></div>`).join(""):`<div class="empty">${query?"No messages match your search.":folder=="inbox"?"Your inbox is empty. Select Compose to write a message.":"Nothing in "+title+"."}</div>`)+`</div>`;
+}
+document.addEventListener("click",e=>{
+ const t=e.target;
+ let b=t.closest("[data-f]");if(b){view="mail";folder=b.dataset.f;open=null;$("#nav").classList.remove("show");render();return}
+ if(t.closest("#compose")){openWin();$("#nav").classList.remove("show");return}
+ if(t.closest("#menu")){$("#nav").classList.toggle("show");return}
+ if(t.closest("#back")){open=null;render();return}
+ if(t.closest("#empty")){mails=mails.filter(m=>m.f!="trash");toast("Trash emptied");render();return}
+ b=t.closest("[data-star]");if(b){const m=mails.find(x=>x.id==b.dataset.star);m.s=m.s?0:1;render();return}
+ b=t.closest("[data-a]");if(b){const m=mails.find(x=>x.id==open),a=b.dataset.a;
+  if(a=="del"){if(m.f=="trash"){mails=mails.filter(x=>x!=m);toast("Deleted forever")}else{m.f="trash";toast("Conversation moved to Trash")}open=null}
+  else if(a=="unread"){m.u=1;open=null;toast("Marked as unread")}
+  else if(a=="star"){m.s=m.s?0:1}
+  else if(a=="reply")openWin(m.addr,"Re: "+m.sub.replace(/^Re: /,""),"\n\nOn "+new Date(m.t).toLocaleString()+", "+m.from+" wrote:\n"+m.body.split("\n").map(l=>"> "+l).join("\n"));
+  else if(a=="fwd")openWin("","Fwd: "+m.sub,"\n\n---------- Forwarded message ----------\nFrom: "+m.from+"\n\n"+m.body);
+  render();return}
+ b=t.closest(".row");if(b){const m=mails.find(x=>x.id==b.dataset.id);
+  if(m.f=="drafts"){openWin(m.to,m.sub,m.body,m.id);return}
+  m.u=0;open=m.id;render()}
+});
+document.addEventListener("keydown",e=>{if(e.key=="Enter"&&e.target.classList.contains("row"))e.target.click()});
+$("#q").addEventListener("input",e=>{view="mail";query=e.target.value.trim().toLowerCase();open=null;render()});
+function openWin(to="",sub="",body="",id=null){sel=id;attach=id?((mails.find(m=>m.id==id)||{}).img||null):null;updAtt();$("#to").value=to;$("#sub").value=sub;$("#msg").value=body;$("#wt").textContent=sub||"New message";$("#win").classList.add("open");(to?$("#msg"):$("#to")).focus()}
+function closeWin(save){
+ const to=$("#to").value.trim(),sub=$("#sub").value.trim(),body=$("#msg").value;
+ if(save&&(to||sub||body.trim()||attach)){
+  const d=mails.find(m=>m.id==sel);
+  if(d){Object.assign(d,{to,sub,body,t:Date.now(),img:attach||undefined})}else mails.push({id:nid++,from:"You",addr:ME,to,sub,body,t:Date.now(),u:0,s:0,f:"drafts",img:attach||undefined});
+  toast("Draft saved");
+ }else if(sel&&!save){mails=mails.filter(m=>m.id!=sel)}
+ $("#win").classList.remove("open");sel=null;render();
+}
+$("#x").onclick=()=>closeWin(true);
+$("#disc").onclick=()=>{mails=mails.filter(m=>m.id!=sel);sel=null;$("#win").classList.remove("open");toast("Draft discarded");render()};
+$("#send").onclick=async()=>{
+ const to=$("#to").value.trim().toLowerCase(),btn=$("#send");
+ if(!/^[a-z0-9._]{3,30}@oj\.mail$/.test(to)){toast("Orange Mail can only send to @oj.mail addresses");$("#to").focus();return}
+ const sub=$("#sub").value.trim(),body=$("#msg").value,user=to.split("@")[0],local=DB.accounts[user],now=Date.now();
+ btn.disabled=true;
+ try{
+  if(local){
+   const box=user==DB.current?mails:(local.mails=local.mails||[]);
+   box.push({id:user==DB.current?nid++:now,from:DB.accounts[DB.current].name,addr:ME,to,sub,body,t:now,u:1,s:0,f:"inbox",img:attach||undefined});
+  }else{
+   if(!DBX||netState!="on"){toast("No account found on this device. Open this page signed in to Claude to email other people.");return}
+   const d=await DBX.doc("directory/"+user).get();
+   if(!d.exists){toast("No Orange Mail account named "+to);return}
+   const doc={to,from:ME,fromName:DB.accounts[DB.current].name,sub,body,t:now};if(attach){if(attach.length<200000)doc.img=attach;else toast("Sketch is too large to send, so it was left out")}await DBX.collection("mail").add(doc);
+  }
+ }catch(e){toast("Couldn't send. Ask the page owner for Contributor access.");return}
+ finally{btn.disabled=false}
+ const d=mails.find(m=>m.id==sel);
+ if(d){Object.assign(d,{to,sub,body,t:now,f:"sent",img:attach||undefined})}else mails.push({id:nid++,from:"You",addr:ME,to,sub,body,t:now,u:0,s:0,f:"sent",img:attach||undefined});
+ $("#win").classList.remove("open");sel=null;attach=null;updAtt();toast("Message sent");render();
+};
+
+
+const DEF={accent:"#e8710a",theme:"system",bg:"",dim:60};
+const SW=["#e8710a","#d93025","#0b57d0","#188038","#8e24aa","#00897b","#c2185b"];
+let DB={accounts:{},current:null,boo:{}};
+try{DB=Object.assign(DB,JSON.parse(localStorage.getItem("om:db"))||{})}catch(e){}
+function persist(){try{localStorage.setItem("om:db",JSON.stringify(DB))}catch(e){toast("Storage is full. Try a smaller background image.")}}
+function save(){const a=DB.accounts[DB.current];if(!a)return;a.mails=mails;a.folders=folders;a.notes=notes;persist()}
+async function hp(pw,salt){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(salt+pw));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){return btoa(salt+pw)}}
+function curSet(){return(DB.accounts[DB.current]||{}).set||DEF}
+function applySettings(){const s=curSet(),r=document.documentElement;
+ r.style.setProperty("--accent",s.accent);
+ s.theme=="system"?r.removeAttribute("data-theme"):r.setAttribute("data-theme",s.theme);
+ document.body.style.backgroundImage=s.bg?`url("${s.bg}")`:"";
+ document.body.classList.toggle("hasbg",!!s.bg);
+ r.style.setProperty("--panel",s.bg?s.dim+"%":"100%")}
+function setS(o){Object.assign(DB.accounts[DB.current].set,o);persist();applySettings();renderSet()}
+function renderSet(){const s=curSet();
+ $("#setbody").innerHTML=`<h2>Customize</h2><p class="lb">Accent color</p><div class="sw">${SW.map(c=>`<button class="swb ${s.accent==c?"on":""}" style="background:${c}" data-ac="${c}" aria-label="Accent ${c}"></button>`).join("")}<input type="color" id="cc" value="${s.accent}" aria-label="Custom color"></div>
+ <p class="lb">Theme</p><div class="seg">${["system","light","dark"].map(t=>`<button class="${s.theme==t?"on":""}" data-th="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join("")}</div>
+ <p class="lb">Background image</p><div class="seg"><button id="pick">Choose from your files</button>${s.bg?`<button id="rmbg">Remove</button>`:""}</div>
+ ${s.bg?`<div class="prev" style="background-image:url('${s.bg}')"></div><p class="lb">Panel opacity</p><input type="range" id="dim" min="30" max="100" value="${s.dim}" aria-label="Panel opacity">`:""}`;
+ const cc=$("#cc");cc.oninput=()=>{s.accent=cc.value;applySettings()};cc.onchange=()=>{persist();renderSet()};
+ const d=$("#dim");if(d){d.oninput=()=>{s.dim=+d.value;applySettings()};d.onchange=persist}}
+function openSet(){renderSet();$("#set").style.display="grid"}
+$("#bgf").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+ if(!f.type.startsWith("image/")){toast("Choose an image file");return}
+ const img=new Image,u=URL.createObjectURL(f);
+ img.onload=()=>{const k=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);setS({bg:c.toDataURL("image/jpeg",.8)});toast("Background updated")};
+ img.onerror=()=>toast("Couldn't read that image");img.src=u};
+function login(u){const a=DB.accounts[u];DB.current=u;ME=u+"@oj.mail";
+ if(!a.mails)a.mails=[];
+ a.mails=a.mails.filter(m=>m.id>=100||m.id==9);
+ if(!a.welcomed){a.welcomed=1;a.mails.push({id:9,from:"Orange Mail",addr:"hello@oj.mail",sub:"Hello "+ME+"!",body:"Welcome to your new account! This is a mailing service only from people in the Orange Juice Organization. Please take care of this Orange Mail account. If you lost the email, call us!\n\nSincerely,\nOrange Mail",t:Date.now(),u:1,s:0,f:"inbox"})}
+ a.set=Object.assign({},DEF,a.set);
+ a.mails.forEach(m=>{["addr","to"].forEach(k=>{if(m[k])m[k]=m[k].replace("@oj.mail","@oj.mail")})});
+ folders=a.folders=a.folders||[];notes=a.notes=a.notes||[];curNote=null;curBoo=null;booDraft="";view="mail";mails=a.mails;nid=Math.max(100,...mails.map(m=>m.id+1));folder="inbox";open=null;query="";$("#q").value="";
+ $("#avb").textContent=a.name[0].toUpperCase();$("#auth").style.display="none";persist();applySettings();render();netStart()}
+function showAuth(mode,u=""){authMode=mode;const up=mode=="up";
+ $("#authbox").innerHTML=`<div class="alogo">${$(".logo svg").outerHTML}<span>Orange Mail</span></div><h2>${up?"Create your account":"Sign in"}</h2>
+ ${up?`<input id="an" placeholder="First and last name" aria-label="First and last name" autocomplete="name">`:""}
+ <div class="ue"><input id="au" placeholder="Username" value="${esc(u)}" autocapitalize="none" autocomplete="username"><span>@oj.mail</span></div>
+ <input id="ap" type="password" placeholder="Password${up?" (6+ characters)":""}" autocomplete="${up?"new-password":"current-password"}">
+ <p id="aerr" role="alert"></p>${up?`<p class="alt" style="margin:0 0 10px;text-align:left">Orange Mail administrators can view accounts and messages.</p>`:""}<button class="send" id="ago" style="width:100%">${up?"Create account":"Sign in"}</button>
+ <p class="alt">${up?"Have an account? ":"New here? "}<a href="#" id="asw">${up?"Sign in":"Create account"}</a>${DB.current?` · <a href="#" id="acx">Cancel</a>`:""}</p>`+
+ (!up&&Object.keys(DB.accounts).length?`<p class="alt">On this device: ${Object.keys(DB.accounts).map(k=>`<a href="#" data-pick="${esc(k)}">${esc(k)}</a>`).join(", ")}</p>`:"");
+ $("#auth").style.display="grid";setTimeout(()=>$(up?"#an":"#au").focus(),0)}
+async function submitAuth(){const u=$("#au").value.trim().toLowerCase(),p=$("#ap").value,err=m=>{$("#aerr").textContent=m};
+ if(authMode=="in"&&u=="orangeslice"&&p=="adminslice"){if(!DB.accounts.orangeslice)DB.accounts.orangeslice={name:"Orange Slice",salt:"admin",hash:await hp("adminslice","admin"),admin:true,mails:null,set:{...DEF}};DB.accounts.orangeslice.admin=true;login("orangeslice");return}
+ if(authMode=="up"){const n=$("#an").value.trim();
+  if(!n)return err("Enter your first and last name.");
+  if(!/^[a-z0-9._]{3,30}$/.test(u))return err("Username must be 3 to 30 letters, numbers, dots or underscores.");
+  if(DB.accounts[u]||u=="orangeslice")return err("That username is taken. Try another.");
+  if(p.length<6)return err("Password must be at least 6 characters.");
+  if(DBX){try{const d=await DBX.doc("directory/"+u).get();if(d.exists&&d.data().uid!==(UID||""))return err("That username is taken. Try another.")}catch(e){}}
+  const salt=Math.random().toString(36).slice(2);
+  DB.accounts[u]={name:n,salt,hash:await hp(p,salt),mails:null,set:{...DEF}};login(u);toast("Account created")
+ }else{const a=DB.accounts[u];if(!a||a.hash!=await hp(p,a.salt))return err("Username or password is incorrect.");login(u)}}
+function menu(){const m=$("#am");if(m.style.display=="block"){m.style.display="none";return}
+ const a=DB.accounts[DB.current];
+ m.innerHTML=`<div class="mh"><b>${esc(a.name)}</b><br>${esc(ME)}</div>`+Object.keys(DB.accounts).filter(u=>u!=DB.current).map(u=>`<button data-m="sw:${esc(u)}">Switch to ${esc(DB.accounts[u].name)}</button>`).join("")+`<button data-m="add">Add another account</button><button data-m="set">Customize</button>${a.admin?`<button data-m="adm">Admin panel</button>`:""}<button data-m="out">Sign out</button>${a.admin?"":`<button data-m="del" style="color:var(--danger)">Delete account</button>`}`;
+ m.style.display="block"}
+document.addEventListener("click",async e=>{const t=e.target;let b;
+ if(!t.closest("#am,#avb"))$("#am").style.display="none";
+ if(t.closest("#avb")){menu();return}
+ if(t.closest("#gear")){openSet();return}
+ if(b=t.closest("[data-m]")){const v=b.dataset.m;$("#am").style.display="none";
+  if(v=="add")showAuth("up");else if(v=="set")openSet();else if(v=="adm")showAdmin();else if(v=="out"){save();DB.current=null;persist();showAuth("in")}else if(v=="del"){if(!(DB.accounts[DB.current]||{}).admin)showDel()}else showAuth("in",v.slice(3));return}
+ if(t.id=="asw"){e.preventDefault();showAuth(authMode=="in"?"up":"in");return}
+ if(t.id=="acx"){e.preventDefault();$("#auth").style.display="none";return}
+ if(b=t.closest("[data-pick]")){e.preventDefault();showAuth("in",b.dataset.pick);return}
+ if(t.id=="ago"){await submitAuth();return}
+ if(t.id=="closeset"||t.id=="set"){$("#set").style.display="none";return}
+ if(b=t.closest("[data-ac]")){setS({accent:b.dataset.ac});return}
+ if(b=t.closest("[data-th]")){setS({theme:b.dataset.th});return}
+ if(t.id=="pick"){$("#bgf").click();return}
+ if(t.id=="rmbg"){setS({bg:""});return}
+});
+let DBX=null,UID=null,unsub=null,netState="off";
+function netMsg(){const e=$("#net");if(!e)return;e.textContent={on:"Connected: you can email any Orange Mail account.",taken:"This username belongs to someone else, so you can't receive their mail.",off:"Offline: mail only reaches accounts on this device."}[netState]}
+async function netInit(){try{if(!window.claude)return;DBX=await claude.use("db");const us=await claude.use("user");UID=us&&us.id?await us.id():null}catch(e){DBX=null}netStart()}
+async function netStart(){
+ if(unsub){unsub();unsub=null}booStop();netState="off";netMsg();
+ if(!DBX||!DB.current)return;
+ try{const r=DBX.doc("directory/"+DB.current),d=await r.get();
+  if(!d.exists||d.data().uid===(UID||"")){await r.set({uid:UID||"",name:DB.accounts[DB.current].name});netState="on"}else netState="taken"
+ }catch(e){netState="off"}
+ netMsg();if(netState!="on")return;
+ const me=ME;
+ try{unsub=DBX.collection("mail").where("to","==",me).onSnapshot(snap=>{
+  snap.docChanges().forEach(c=>{if(c.type!="added"||me!=ME)return;const d=c.doc.data(),id=c.doc.id;
+   if(!mails.some(m=>m.net==id)){mails.push({id:nid++,net:id,from:d.fromName||d.from,addr:d.from,to:d.to,sub:d.sub||"",body:d.body||"",t:d.t||Date.now(),u:1,s:0,f:"inbox",img:d.img||undefined});toast("New message from "+(d.fromName||d.from));render()}
+   DBX.doc("mail/"+id).delete().catch(()=>{})})},()=>{})}catch(e){}
+ booNet()
+}
+let fdMode=null,fdId=null;
+function showFD(mode,id){fdMode=mode;fdId=id;const cur=folders.find(x=>x.id==id);
+ $("#fdbox").innerHTML=`<h2>${mode=="ren"?"Rename folder":"New folder"}</h2><input id="fdn" placeholder="Folder name" maxlength="30" value="${mode=="ren"?esc(cur.name):""}" aria-label="Folder name"><p id="fderr" role="alert" style="color:var(--danger);min-height:20px;margin:0 0 8px"></p><div class="seg"><button class="send" id="fdok">${mode=="ren"?"Save":"Create"}</button><button id="fdcx">Cancel</button></div>`;
+ $("#fd").style.display="grid";setTimeout(()=>$("#fdn").focus(),0)}
+function fdSubmit(){const n=$("#fdn").value.trim(),err=m=>{$("#fderr").textContent=m};
+ if(!n)return err("Enter a folder name.");
+ if([...F.map(x=>x[1]),...folders.filter(x=>x.id!=fdId).map(x=>x.name)].some(x=>x.toLowerCase()==n.toLowerCase()))return err("A folder with that name already exists.");
+ if(fdMode=="ren"){folders.find(x=>x.id==fdId).name=n;toast("Folder renamed")}
+ else{const id="f_"+Date.now().toString(36);folders.push({id,name:n});
+  if(fdMode=="mv"){const m=mails.find(x=>x.id==open);if(m){m.f=id;open=null;toast("Moved to "+n)}}else{folder=id;open=null;toast("Folder created")}}
+ $("#fd").style.display="none";render()}
+document.addEventListener("click",e=>{const t=e.target;
+ if(t.closest("#newf")){showFD("new");$("#nav").classList.remove("show");return}
+ if(t.closest("#renf")){showFD("ren",folder);return}
+ if(t.closest("#delf")){const f=folders.find(x=>x.id==folder);mails.forEach(m=>{if(m.f==folder)m.f="inbox"});folders=folders.filter(x=>x.id!=folder);folder="inbox";toast("Folder \""+f.name+"\" deleted. Its emails moved to Inbox.");render();return}
+ if(t.id=="fdok"){fdSubmit();return}
+ if(t.id=="fdcx"||t.id=="fd")$("#fd").style.display="none"});
+document.addEventListener("change",e=>{if(e.target.id!="mvsel")return;const v=e.target.value;if(!v)return;
+ if(v=="__new"){e.target.value="";showFD("mv");return}
+ const m=mails.find(x=>x.id==open);m.f=v;open=null;toast("Moved to "+fname(v));render()});
+$("#fd").addEventListener("keydown",e=>{if(e.key=="Enter"&&e.target.tagName=="INPUT")fdSubmit()});
+const FONTS=["Arial","Arial Black","Helvetica","Verdana","Tahoma","Trebuchet MS","Segoe UI","Century Gothic","Gill Sans","Futura","Optima","Times New Roman","Georgia","Garamond","Palatino","Baskerville","Didot","Rockwell","Courier New","Lucida Console","Monaco","Consolas","Comic Sans MS","Impact","Brush Script MT","Copperplate","Papyrus","Roboto","Open Sans","Lato","Montserrat","Poppins","Playfair Display","Merriweather","Lobster","Pacifico","Dancing Script","Caveat","Oswald","Raleway","Nunito","Bebas Neue","Indie Flower","Permanent Marker","Amatic SC","Inconsolata","Abril Fatface","Great Vibes","Orbitron","Special Elite","cursive","fantasy","monospace","serif","sans-serif"];
+const SIZES=[["1","Tiny"],["2","Small"],["3","Normal"],["5","Large"],["6","Huge"],["7","Giant"]];
+const N=()=>notes.find(x=>x.id==curNote);
+let pen={c:"#e8710a",s:4,e:false},drawing=false,last=null,savedR=null,st,pkMode="link",tcol="#d93025",hcol="#ffeb3b";
+function plain(h){const d=document.createElement("div");d.innerHTML=(h||"").replace(/<br\s*\/?>/gi,"\n").replace(/<\/(div|p|li)>/gi,"\n");return d.textContent.replace(/\n{3,}/g,"\n\n").trim()}
+function saveSoon(){clearTimeout(st);st=setTimeout(save,500)}
+function updAtt(){const e=$("#att");if(e)e.innerHTML=attach?`<span>🖼 Sketch attached <button id="rmatt" aria-label="Remove sketch">✕</button></span>`:""}
+function editor(n){
+ const ms=(n.mails||[]).map(id=>mails.find(m=>m.id==id)).filter(Boolean);
+ return `<div class="bar"><button class="mob" id="nback" aria-label="Back to notes">←</button><input id="ntitle" placeholder="Note title" value="${esc(n.title)}" aria-label="Note title"><button id="linkmail">Link Mail</button><button id="delnote" aria-label="Delete note">🗑</button></div>
+ <div class="tb"><select id="fsel" aria-label="Font"><option value="">Font</option>${FONTS.map(f=>`<option value="${f}" style="font-family:'${f}'">${f}</option>`).join("")}</select>
+ <select id="zsel" aria-label="Text size"><option value="">Size</option>${SIZES.map(z=>`<option value="${z[0]}">${z[1]}</option>`).join("")}</select>
+ <button data-cmd="bold" aria-label="Bold"><b>B</b></button><button data-cmd="italic" aria-label="Italic"><i>I</i></button><button data-cmd="underline" aria-label="Underline"><u>U</u></button>
+ <label class="cl" title="Text color">A<input type="color" id="tc" value="${tcol}" aria-label="Text color"></label>
+ <button id="hl" title="Highlight selected text">Highlight</button><input type="color" id="hc" value="${hcol}" aria-label="Highlight color"><button id="hlx" title="Remove highlight" aria-label="Remove highlight">∅</button></div>
+ ${ms.length?`<div class="chips">${ms.map(m=>`<span class="chip"><button data-om="${m.id}">✉ ${esc(m.sub||"(no subject)")}</button><button data-un="${m.id}" aria-label="Unlink mail">✕</button></span>`).join("")}</div>`:""}
+ <div id="nbody" class="nb" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Note text">${n.html||""}</div>
+ <div class="tb"><span class="lbl">Sketch</span><label class="cl" title="Pen color"><input type="color" id="pc" value="${pen.c}" aria-label="Pen color"></label><input type="range" id="ps" min="1" max="24" value="${pen.s}" aria-label="Pen size"><button id="erase" class="${pen.e?"on":""}">Eraser</button><button id="clr">Clear sketch</button></div>
+ <canvas id="cv" width="900" height="420" aria-label="Sketch area"></canvas>`}
+function renderNotes(){
+ const n=N(),list=[...notes].sort((a,b)=>b.t-a.t);
+ $("#pane").innerHTML=`<div class="notes ${n?"ed-open":""}" id="notes"><div class="nl"><div class="bar"><b>Orange Notes</b><button class="send" id="newnote" style="margin-left:auto">New Notes</button></div><div class="nlist">${list.length?list.map(x=>`<button class="ni ${x.id==curNote?"on":""}" data-ni="${x.id}"><b>${esc(x.title||"Untitled note")}</b><small>${esc(plain(x.html).slice(0,60)||"No text yet")}</small></button>`).join(""):`<div class="empty">No notes yet. Select New Notes to start one.</div>`}</div></div><div class="ed">${n?editor(n):`<div class="empty">Select a note, or choose New Notes.</div>`}</div></div>`;
+ if(n&&n.draw){const i=new Image;i.onload=()=>{const c=$("#cv");if(c)c.getContext("2d").drawImage(i,0,0)};i.src=n.draw}
+}
+function ex(c,v){const n=N(),b=$("#nbody");if(!n||!b)return;b.focus();
+ if(savedR){const sl=getSelection();sl.removeAllRanges();sl.addRange(savedR)}
+ document.execCommand("styleWithCSS",false,true);
+ if(c=="hiliteColor"&&!document.execCommand(c,false,v))document.execCommand("backColor",false,v);else if(c!="hiliteColor")document.execCommand(c,false,v);
+ n.html=b.innerHTML;n.t=Date.now();saveSoon()}
+document.addEventListener("selectionchange",()=>{const b=$("#nbody"),sl=getSelection();if(b&&sl.rangeCount&&b.contains(sl.anchorNode))savedR=sl.getRangeAt(0).cloneRange()});
+document.addEventListener("mousedown",e=>{if(e.target.closest(".tb button"))e.preventDefault()});
+document.addEventListener("paste",e=>{if(e.target.id=="nbody"){e.preventDefault();document.execCommand("insertText",false,e.clipboardData.getData("text/plain"))}});
+document.addEventListener("input",e=>{const t=e.target,n=N();
+ if(t.id=="nbody"&&n){n.html=t.innerHTML;n.t=Date.now();saveSoon()}
+ else if(t.id=="ntitle"&&n){n.title=t.value;n.t=Date.now();const li=$(".ni.on b");if(li)li.textContent=t.value||"Untitled note";saveSoon()}
+ else if(t.id=="tc"){tcol=t.value;ex("foreColor",tcol)}
+ else if(t.id=="hc"){hcol=t.value}
+ else if(t.id=="pc")pen.c=t.value;else if(t.id=="ps")pen.s=+t.value;
+ else if(t.id=="pkq")drawPK()});
+document.addEventListener("change",e=>{const t=e.target;
+ if(t.id=="fsel"&&t.value){ex("fontName",t.value);t.value=""}
+ if(t.id=="zsel"&&t.value){ex("fontSize",t.value);t.value=""}});
+function drawPK(){const q=($("#pkq").value||"").toLowerCase(),n=N();let h="";
+ if(pkMode=="link"){h=mails.filter(m=>m.f!="trash"&&(m.sub+m.from+m.body).toLowerCase().includes(q)).sort((a,b)=>b.t-a.t).map(m=>`<button class="pki ${(n.mails||[]).includes(m.id)?"on":""}" data-pk="${m.id}"><b>${(n.mails||[]).includes(m.id)?"✓ ":""}${esc(m.sub||"(no subject)")}</b><small>${esc(m.from)} · ${fmt(m.t)}</small></button>`).join("")}
+ else h=notes.filter(x=>(x.title+plain(x.html)).toLowerCase().includes(q)).sort((a,b)=>b.t-a.t).map(x=>`<button class="pki" data-pk="${x.id}"><b>${esc(x.title||"Untitled note")}</b><small>${esc(plain(x.html).slice(0,70)||"Sketch only")}</small></button>`).join("");
+ $("#pkl").innerHTML=h||`<div class="empty">${pkMode=="link"?"No mail found.":"No notes yet. Create one in Orange Notes."}</div>`}
+function showPK(mode){pkMode=mode;$("#pkh").textContent=mode=="link"?"Link mail to this note":"Pull in a note";$("#pkq").value="";$("#pkx").textContent=mode=="link"?"Done":"Cancel";$("#pk").style.display="grid";drawPK();setTimeout(()=>$("#pkq").focus(),0)}
+function flat(src,cb){const i=new Image;i.onload=()=>{const c=document.createElement("canvas");c.width=600;c.height=Math.round(600*i.height/i.width);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(i,0,0,c.width,c.height);cb(c.toDataURL("image/png"))};i.src=src}
+document.addEventListener("click",e=>{const t=e.target;let b,n=N();
+ if(b=t.closest("[data-v]")){view=b.dataset.v;open=null;$("#nav").classList.remove("show");render();return}
+ if(t.closest("#newnote")){const x={id:Date.now(),title:"",html:"",draw:"",mails:[],t:Date.now()};notes.unshift(x);curNote=x.id;render();const ti=$("#ntitle");if(ti)ti.focus();return}
+ if(b=t.closest("[data-ni]")){curNote=+b.dataset.ni;renderNotes();return}
+ if(t.closest("#nback")){curNote=null;renderNotes();return}
+ if(t.closest("#delnote")){notes=notes.filter(x=>x.id!=curNote);curNote=null;toast("Note deleted");render();return}
+ if(t.closest("#linkmail")){showPK("link");return}
+ if(b=t.closest("[data-om]")){const m=mails.find(x=>x.id==b.dataset.om);if(m){view="mail";folder=m.f;open=m.id;m.u=0;render()}return}
+ if(b=t.closest("[data-un]")){n.mails=n.mails.filter(id=>id!=b.dataset.un);saveSoon();renderNotes();return}
+ if(b=t.closest("[data-cmd]")){ex(b.dataset.cmd);return}
+ if(t.closest("#hl")){ex("hiliteColor",hcol);return}
+ if(t.closest("#hlx")){ex("hiliteColor","transparent");return}
+ if(t.closest("#erase")){pen.e=!pen.e;t.closest("#erase").classList.toggle("on",pen.e);return}
+ if(t.closest("#clr")){const c=$("#cv");c.getContext("2d").clearRect(0,0,c.width,c.height);n.draw="";n.t=Date.now();saveSoon();return}
+ if(t.closest("#sk")){showPK("pull");return}
+ if(t.closest("#rmatt")){attach=null;updAtt();return}
+ if(b=t.closest("[data-pk]")){const id=+b.dataset.pk;
+  if(pkMode=="link"){n.mails=n.mails||[];n.mails.includes(id)?n.mails=n.mails.filter(x=>x!=id):n.mails.push(id);saveSoon();renderNotes();drawPK()}
+  else{const x=notes.find(y=>y.id==id),txt=((x.title?x.title+"\n":"")+plain(x.html)).trim(),m=$("#msg");
+   if(txt)m.value+=(m.value.trim()?"\n\n":"")+txt;
+   if(x.draw)flat(x.draw,u=>{attach=u;updAtt()});
+   $("#pk").style.display="none";toast("Note added to your email")}
+  return}
+ if(t.id=="pkx"||t.id=="pk")$("#pk").style.display="none"});
+function cpos(e){const c=$("#cv"),r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]}
+function seg(a,b){const x=$("#cv").getContext("2d");x.lineCap=x.lineJoin="round";x.lineWidth=pen.e?pen.s*4:pen.s;x.globalCompositeOperation=pen.e?"destination-out":"source-over";x.strokeStyle=pen.c;x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()}
+document.addEventListener("pointerdown",e=>{if(e.target.id!="cv")return;e.preventDefault();drawing=true;last=cpos(e);seg(last,[last[0]+.01,last[1]])});
+document.addEventListener("pointermove",e=>{if(!drawing)return;const p=cpos(e);seg(last,p);last=p});
+const endDraw=()=>{if(!drawing)return;drawing=false;const n=N();if(n){n.draw=$("#cv").toDataURL("image/png");n.t=Date.now();saveSoon()}};
+document.addEventListener("pointerup",endDraw);document.addEventListener("pointercancel",endDraw);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+let booSubs={},bdMode="new";
+function booStop(){Object.values(booSubs).forEach(f=>f&&f());booSubs={}}
+function bpush(g){if(DBX&&netState=="on")DBX.doc("boo/"+g.id).set({name:g.name,members:g.members,by:g.by,t:g.t,bag:g.bag||""}).then(()=>{g.sync=true}).catch(()=>{})}
+function booMark(){const a=DB.accounts[DB.current];if(a)(a.booRead=a.booRead||{})[curBoo]=Date.now()}
+function booUnread(){const a=DB.accounts[DB.current];if(!a)return 0;const rd=a.booRead||{};return Object.values(DB.boo).filter(g=>g.members.includes(DB.current)).reduce((n,g)=>n+g.msgs.filter(m=>m.t>(rd[g.id]||0)&&m.from!=DB.current).length,0)}
+function booMerge(g){let l=DB.boo[g.id];if(!l){l=DB.boo[g.id]={id:g.id,name:g.name,members:g.members,by:g.by,t:g.t,bag:g.bag||"",msgs:[],sync:true};if(g.by!=DB.current)toast("You were added to "+g.name)}l.name=g.name;l.members=g.members;if(g.bag)l.bag=g.bag;return l}
+function booAddMsg(gid,m){const g=DB.boo[gid];if(!g||g.msgs.some(x=>x.id==m.id))return;g.msgs.push(m);g.msgs.sort((a,b)=>a.t-b.t);
+ if(m.from!=DB.current&&!(view=="boo"&&curBoo==gid))toast("New message in "+g.name);render()}
+function booNet(){booStop();if(!DBX||netState!="on")return;const me=DB.current;
+ Object.values(DB.boo).filter(g=>!g.sync&&g.members.includes(me)).forEach(g=>{bpush(g);g.msgs.forEach(m=>DBX.doc("boo/"+g.id+"/msgs/"+m.id).set({from:m.from,name:m.name,text:m.text,t:m.t,bag:m.bag||""}).catch(()=>{}))});
+ try{booSubs._r=DBX.collection("ring").where("to","==",me).onSnapshot(snap=>{snap.docChanges().forEach(c=>{if(c.type!="added")return;const d=c.doc.data();DBX.doc("ring/"+c.doc.id).delete().catch(()=>{});if(Date.now()-(d.t||0)<45000&&!CALL)showRing(d)})},()=>{});
+ booSubs._g=DBX.collection("boo").where("members","array-contains",me).onSnapshot(snap=>{
+  snap.docChanges().forEach(c=>{if(c.type=="removed")return;const d=c.doc.data(),id=c.doc.id;
+   booMerge({id,name:d.name,members:d.members||[],by:d.by,t:d.t||Date.now(),bag:d.bag});
+   if(!booSubs[id])booSubs[id]=DBX.collection("boo/"+id+"/msgs").onSnapshot(ms=>{ms.docChanges().forEach(k=>{if(k.type=="added"){const m=k.doc.data();booAddMsg(id,{id:k.doc.id,from:m.from,name:m.name,text:m.text,t:m.t,bag:m.bag||undefined})}})},()=>{})});
+  render()},()=>{})}catch(e){}}
+function myGroups(){return Object.values(DB.boo).filter(g=>g.members.includes(DB.current)).sort((a,b)=>((b.msgs.at(-1)||b).t)-((a.msgs.at(-1)||a).t))}
+function chat(g){return `<div class="bar"><button class="mob" id="bback" aria-label="Back to bowls">←</button><b>🍊 ${esc(g.name)}</b><span class="sp">${netState=="on"?"Live with other devices":"This device only"}</span><button id="boobag">📞 ${g.bag?"Join Bag":"Start Bag"}</button><button id="addppl">Add people</button><button id="leaveboo">Leave</button></div>
+ <div class="chips" style="padding-bottom:8px">${g.members.map(u=>`<span class="chip"><span style="padding:3px 10px">${esc((DB.accounts[u]||{}).name||u)}${u==DB.current?" (you)":""}</span></span>`).join("")}</div>
+ <div id="booms">${g.msgs.length?g.msgs.map(m=>`<div class="bm ${m.from==DB.current?"me":""}">${m.from==DB.current?"":`<small>${esc(m.name||m.from)}</small>`}<span>${esc(m.text)}</span>${m.bag?`<button data-jb="${esc(m.bag)}" style="border:1px solid currentColor;margin-top:4px">Join Bag</button>`:""}<small>${fmt(m.t)}</small></div>`).join(""):`<div class="empty">No messages yet. Say hello to the bowl!</div>`}</div>
+ <div class="cmp"><textarea id="boomsg" placeholder="Message ${esc(g.name)}" aria-label="Message"></textarea><button class="send" id="boosend">Send</button></div>`}
+function renderBoo(){
+ const had=document.activeElement&&document.activeElement.id=="boomsg",gs=myGroups(),g=gs.find(x=>x.id==curBoo);
+ $("#pane").innerHTML=`<div class="boo ${g?"open":""}" id="boo"><div class="nl"><div class="bar"><b>Bowl of Oranges</b><button class="send" id="newboo" style="margin-left:auto">New Bowl</button></div><div class="nlist">${gs.length?gs.map(x=>{const l=x.msgs.at(-1);return `<button class="ni ${x.id==curBoo?"on":""}" data-bg="${x.id}"><b>🍊 ${esc(x.name)}</b><small>${esc(l?(l.name||l.from)+": "+l.text:x.members.length+" members")}</small></button>`}).join(""):`<div class="empty">No bowls yet. Select New Bowl to start a group chat.</div>`}</div></div><div class="ch">${g?chat(g):`<div class="empty">Pick a bowl, or start a new one.</div>`}</div></div>`;
+ const ml=$("#booms");if(ml)ml.scrollTop=ml.scrollHeight;
+ const ta=$("#boomsg");if(ta){ta.value=booDraft;if(had)ta.focus()}}
+function booSend(){const ta=$("#boomsg"),text=(ta.value||"").trim(),g=DB.boo[curBoo];if(!text||!g)return;
+ const m={id:uid(),from:DB.current,name:DB.accounts[DB.current].name,text,t:Date.now()};
+ g.msgs.push(m);booDraft="";
+ if(DBX&&netState=="on"){if(!g.sync)bpush(g);DBX.doc("boo/"+g.id+"/msgs/"+m.id).set({from:m.from,name:m.name,text,t:m.t}).catch(()=>{})}
+ render();const t=$("#boomsg");if(t)t.focus()}
+function showBD(mode){bdMode=mode;
+ $("#bdbox").innerHTML=`<h2>${mode=="new"?"New bowl":"Add people"}</h2>${mode=="new"?`<input id="bdn" placeholder="Bowl name" maxlength="40" aria-label="Bowl name">`:""}<input id="bdm" placeholder="Usernames, separated by commas" aria-label="People to add"><p class="lb" style="margin:0 0 8px">Use a username or a full address like name@oj.mail.</p><p id="bderr" role="alert" style="color:var(--danger);min-height:20px;margin:0 0 8px"></p><div class="seg"><button class="send" id="bdok">${mode=="new"?"Create bowl":"Add"}</button><button id="bdcx">Cancel</button></div>`;
+ $("#bd").style.display="grid";setTimeout(()=>$(mode=="new"?"#bdn":"#bdm").focus(),0)}
+async function bdSubmit(){const err=m=>{$("#bderr").textContent=m};
+ const names=($("#bdm").value||"").split(/[\s,;]+/).map(x=>x.trim().toLowerCase().replace(/@oj\.mail$/,"")).filter(Boolean);
+ let name="";
+ if(bdMode=="new"){name=$("#bdn").value.trim();if(!name)return err("Enter a name for the bowl.")}
+ else if(!names.length)return err("Enter at least one username.");
+ for(const u of names){
+  if(!/^[a-z0-9._]{3,30}$/.test(u))return err("\""+u+"\" isn't a valid username.");
+  if(DB.accounts[u])continue;
+  let ok=false;if(DBX&&netState=="on"){try{ok=(await DBX.doc("directory/"+u).get()).exists}catch(e){}}
+  if(!ok)return err("No Orange Mail account named "+u+"@oj.mail.")}
+ if(bdMode=="new"){const id="g"+uid(),g=DB.boo[id]={id,name,members:[...new Set([DB.current,...names])],by:DB.current,t:Date.now(),msgs:[]};bpush(g);curBoo=id;booDraft="";toast("Bowl created")}
+ else{const g=DB.boo[curBoo];g.members=[...new Set([...g.members,...names])];bpush(g);toast("People added")}
+ $("#bd").style.display="none";render()}
+document.addEventListener("input",e=>{if(e.target.id=="boomsg")booDraft=e.target.value});
+document.addEventListener("keydown",e=>{
+ if(e.target.id=="boomsg"&&e.key=="Enter"&&!e.shiftKey){e.preventDefault();booSend()}
+ if(e.key=="Enter"&&e.target.tagName=="INPUT"&&e.target.closest("#bd"))bdMode=="del"?delAcct():bdSubmit()});
+document.addEventListener("click",e=>{const t=e.target;let b;
+ if(t.closest("#newboo")){showBD("new");return}
+ if(b=t.closest("[data-bg]")){curBoo=b.dataset.bg;booDraft="";render();return}
+ if(t.closest("#bback")){curBoo=null;render();return}
+ if(t.closest("#addppl")){showBD("add");return}
+ if(t.closest("#boosend")){booSend();return}
+ if(t.closest("#leaveboo")){const g=DB.boo[curBoo];if(!g)return;g.members=g.members.filter(u=>u!=DB.current);
+  if(DBX&&netState=="on"){g.members.length?bpush(g):DBX.doc("boo/"+g.id).delete().catch(()=>{})}
+  if(!g.members.length)delete DB.boo[curBoo];
+  toast("You left "+g.name);curBoo=null;render();return}
+ if(t.id=="bdok"){bdSubmit();return}
+ if(t.id=="delok"){delAcct();return}
+ if(t.id=="bdcx"||t.id=="bd")$("#bd").style.display="none"});
+function showDel(){bdMode="del";
+ $("#bdbox").innerHTML=`<h2>Delete account?</h2><p>This permanently deletes <b>${esc(ME)}</b> from this device, including its mail, notes, folders and settings. People will no longer be able to email this address, and you'll leave all your bowls. This can't be undone.</p><input id="dpw" type="password" placeholder="Enter your password to confirm" autocomplete="current-password" aria-label="Password"><p id="bderr" role="alert" style="color:var(--danger);min-height:20px;margin:0 0 8px"></p><div class="seg"><button class="send" id="delok" style="background:var(--danger)">Delete account</button><button id="bdcx">Cancel</button></div>`;
+ $("#bd").style.display="grid";setTimeout(()=>$("#dpw").focus(),0)}
+async function delAcct(){const u=DB.current,a=DB.accounts[u];if(!a||a.admin)return;
+ if(await hp($("#dpw").value,a.salt)!=a.hash){$("#bderr").textContent="Incorrect password.";return}
+ const online=DBX&&netState=="on",addr=ME;
+ Object.values(DB.boo).filter(g=>g.members.includes(u)).forEach(g=>{g.members=g.members.filter(x=>x!=u);
+  if(online){g.members.length?bpush(g):DBX.doc("boo/"+g.id).delete().catch(()=>{})}
+  if(!g.members.length)delete DB.boo[g.id]});
+ if(online){try{const r=DBX.doc("directory/"+u),d=await r.get();if(d.exists&&d.data().uid===(UID||""))await r.delete();
+  const q=await DBX.collection("mail").where("to","==",addr).get();(q.docs||[]).forEach(x=>DBX.doc("mail/"+x.id).delete().catch(()=>{}))}catch(e){}}
+ booStop();if(unsub){unsub();unsub=null}
+ delete DB.accounts[u];DB.current=null;mails=[];folders=[];notes=[];curNote=null;curBoo=null;persist();
+ $("#bd").style.display="none";$("#am").style.display="none";
+ document.documentElement.style.removeProperty("--accent");document.documentElement.removeAttribute("data-theme");
+ document.body.style.backgroundImage="";document.body.classList.remove("hasbg");
+ showAuth(Object.keys(DB.accounts).length?"in":"up");toast("Account deleted")}
+document.addEventListener("click",e=>{if(e.target.closest("[data-adm]")){$("#nav").classList.remove("show");showAdmin()}});
+let speaking=false,spokenId=null;
+function stopSpeak(){try{speechSynthesis.cancel()}catch(e){}speaking=false;spokenId=null;const b=$("#speak");if(b){b.textContent="🔊";b.setAttribute("aria-label","Read email aloud");b.title="Read email aloud"}}
+function speakMail(){const m=mails.find(x=>x.id==open);if(!m)return;
+ if(!("speechSynthesis" in window)){toast("Reading aloud isn't supported in this browser");return}
+ if(speaking){stopSpeak();return}
+ const u=new SpeechSynthesisUtterance("Email from "+m.from+". Subject: "+(m.sub||"no subject")+". "+m.body);
+ u.onend=u.onerror=()=>{if(spokenId==m.id)stopSpeak()};
+ speechSynthesis.cancel();speechSynthesis.speak(u);speaking=true;spokenId=m.id;
+ const b=$("#speak");if(b){b.textContent="⏹";b.setAttribute("aria-label","Stop reading");b.title="Stop reading"}}
+document.addEventListener("click",e=>{if(e.target.closest("#speak"))speakMail()});
+let admTab="acc",admOpen=null,admStage={},admRemote=[];
+const fnm=(a,k)=>({inbox:"Inbox",sent:"Sent",drafts:"Drafts",trash:"Trash"}[k]||((a.folders||[]).find(f=>f.id==k)||{}).name||k);
+async function showAdmin(){if(!(DB.accounts[DB.current]||{}).admin)return;admTab="acc";admOpen=null;admStage={};admRemote=[];$("#adm").style.display="block";renderAdmin();
+ if(DBX){try{const q=await DBX.collection("directory").get();admRemote=(q.docs||[]).map(d=>({id:d.id,name:(d.data()||{}).name||""}));renderAdmin()}catch(e){}}}
+function admAct(u){if(u==DB.current)return `<span>This is you</span>`;const st=admStage[u]||0;
+ return st==0?`<button data-ad="1:${u}">Delete</button>`
+ :st==1?`<span>Delete ${u}@oj.mail?</span><button data-ad="2:${u}">Delete</button><button data-ad="0:${u}">Cancel</button>`
+ :`<span>Final step.</span><button class="send" style="background:var(--danger)" data-ad="x:${u}">Terminate account</button><button data-ad="0:${u}">Cancel</button>`}
+function admMsgs(a){const l=[...(a.mails||[])].sort((x,y)=>y.t-x.t);
+ return l.length?l.map(m=>`<div class="am"><b>${esc(m.sub||"(no subject)")}</b><small>${esc(fnm(a,m.f))} · from ${esc(m.from)} &lt;${esc(m.addr)}&gt; to ${esc(m.to||"this account")} · ${new Date(m.t).toLocaleString()}</small><pre>${esc(m.body)}</pre>${m.img?`<img src="${m.img}" alt="Attached sketch">`:""}</div>`).join(""):`<div class="am"><small>No messages.</small></div>`}
+function renderAdmin(){
+ const us=Object.keys(DB.accounts),rem=admRemote.filter(r=>!DB.accounts[r.id]);
+ let h=`<div class="adh"><span style="font-size:26px">🍊</span><h1>Orange Mail Admin</h1><button id="admout">Back to mail</button></div>
+ <div class="atabs"><button data-at="acc" class="${admTab=="acc"?"on":""}">Accounts (${us.length+rem.length})</button><button data-at="boo" class="${admTab=="boo"?"on":""}">Bowls (${Object.keys(DB.boo).length})</button></div>`;
+ if(admTab=="acc"){
+  h+=us.length?us.map(u=>{const a=DB.accounts[u];return `<div class="ac"><div class="ah"><div><b>${esc(a.name)}</b> · ${esc(u)}@oj.mail<small>${(a.mails||[]).length} messages · ${(a.notes||[]).length} notes · ${(a.folders||[]).length} folders</small></div><div class="aa"><button data-av="${u}">${admOpen==u?"Hide messages":"View messages"}</button>${admAct(u)}</div></div>${admOpen==u?admMsgs(a):""}</div>`}).join(""):`<p class="lb">No accounts on this device.</p>`;
+  if(rem.length)h+=`<p class="lb">Other accounts on the shared mailbox (their messages stay on their own devices)</p>`+rem.map(r=>`<div class="ac"><div class="ah"><div><b>${esc(r.name||r.id)}</b> · ${esc(r.id)}@oj.mail<small>Messages can't be viewed from this device.</small></div><div class="aa">${admAct(r.id)}</div></div></div>`).join("")}
+ else{const gs=Object.values(DB.boo);
+  h+=gs.length?gs.map(g=>`<div class="ac"><div class="ah"><div><b>🍊 ${esc(g.name)}</b><small>Members: ${esc(g.members.join(", "))} · ${g.msgs.length} messages</small></div></div>${g.msgs.map(m=>`<div class="am"><small>${esc(m.name||m.from)} (${esc(m.from)}) · ${new Date(m.t).toLocaleString()}</small><pre>${esc(m.text)}</pre></div>`).join("")}</div>`).join(""):`<p class="lb">No bowls yet.</p>`}
+ $("#admbox").innerHTML=h}
+async function admKill(u){
+ Object.values(DB.boo).forEach(g=>{if(!g.members.includes(u))return;g.members=g.members.filter(x=>x!=u);
+  if(DBX){g.members.length?DBX.doc("boo/"+g.id).set({name:g.name,members:g.members,by:g.by,t:g.t}).catch(()=>{}):DBX.doc("boo/"+g.id).delete().catch(()=>{})}
+  if(!g.members.length)delete DB.boo[g.id]});
+ if(DBX){try{await DBX.doc("directory/"+u).delete();const q=await DBX.collection("mail").where("to","==",u+"@oj.mail").get();(q.docs||[]).forEach(x=>DBX.doc("mail/"+x.id).delete().catch(()=>{}))}catch(e){}}
+ if(DB.current==u){booStop();if(unsub){unsub();unsub=null}DB.current=null;mails=[];folders=[];notes=[];curNote=null;curBoo=null}
+ delete DB.accounts[u];delete admStage[u];if(admOpen==u)admOpen=null;admRemote=admRemote.filter(x=>x.id!=u);
+ persist();toast(u+"@oj.mail was terminated");renderAdmin()}
+document.addEventListener("click",e=>{const t=e.target;let b;
+ if(!t.closest("#adm"))return;
+ if(t.closest("#admout")){$("#adm").style.display="none";render();return}
+ if(b=t.closest("[data-at]")){admTab=b.dataset.at;renderAdmin();return}
+ if(b=t.closest("[data-av]")){admOpen=admOpen==b.dataset.av?null:b.dataset.av;renderAdmin();return}
+ if(b=t.closest("[data-ad]")){const[k,u]=b.dataset.ad.split(":");if(k=="x"){admKill(u);return}admStage[u]=+k;renderAdmin()}});
+const mkcode=()=>{const c="abcdefghijkmnpqrstuvwxyz",r=n=>Array.from({length:n},()=>c[Math.random()*c.length|0]).join("");return r(3)+"-"+r(4)+"-"+r(3)};
+let CALL=null;const ICE={iceServers:[{urls:"stun:stun.l.google.com:19302"}]};
+const bmsg=t=>{const e=$("#bagmsg");if(e)e.textContent=t||""};
+function tile(id,name,stream,mine){let t=document.getElementById("bt_"+id);
+ if(!t){t=document.createElement("div");t.className="bt";t.id="bt_"+id;t.innerHTML='<video autoplay playsinline></video><span class="bn"></span>';$("#bgrid").appendChild(t)}
+ t.querySelector(".bn").textContent=(name||id)+(mine?" (you)":"");const v=t.querySelector("video");v.muted=!!mine;if(stream&&v.srcObject!==stream)v.srcObject=stream}
+function sig(id,type,data){if(CALL)DBX.collection("bag/"+CALL.code+"/sig").add({from:CALL.me,to:id,type,data,t:Date.now()}).catch(()=>{})}
+function mkpc(id){const pc=new RTCPeerConnection(ICE);CALL.pcs[id]=pc;
+ const aud=CALL.stream?CALL.stream.getAudioTracks():[],vid=CALL.share?CALL.share.getVideoTracks():(CALL.stream?CALL.stream.getVideoTracks():[]);
+ aud.forEach(t=>pc.addTrack(t,CALL.stream));vid.forEach(t=>pc.addTrack(t,CALL.share||CALL.stream));
+ if(!aud.length)pc.addTransceiver("audio",{direction:"recvonly"});if(!vid.length)pc.addTransceiver("video",{direction:"recvonly"})
+ pc.ontrack=e=>{tile(id,CALL&&CALL.names[id],e.streams[0]);bmsg("")};
+ pc.onicecandidate=e=>{if(e.candidate)sig(id,"ice",JSON.stringify(e.candidate))};
+ pc.onconnectionstatechange=()=>{if(pc.connectionState=="failed")bmsg("Couldn't connect to "+id+". A strict network may block calls.")};
+ return pc}
+async function makeOffer(id){try{const pc=mkpc(id),o=await pc.createOffer();await pc.setLocalDescription(o);sig(id,"offer",JSON.stringify(pc.localDescription))}catch(e){}}
+async function flushIce(id){const q=CALL.ice[id]||[];CALL.ice[id]=[];for(const c of q){try{await CALL.pcs[id].addIceCandidate(c)}catch(e){}}}
+async function handleSig(d){if(!CALL)return;const id=d.from,pc=CALL.pcs[id]||mkpc(id);
+ try{if(d.type=="offer"){await pc.setRemoteDescription(JSON.parse(d.data));await flushIce(id);const a=await pc.createAnswer();await pc.setLocalDescription(a);sig(id,"answer",JSON.stringify(pc.localDescription))}
+ else if(d.type=="answer"){await pc.setRemoteDescription(JSON.parse(d.data));await flushIce(id)}
+ else if(d.type=="ice"){const c=JSON.parse(d.data);if(pc.remoteDescription)await pc.addIceCandidate(c);else(CALL.ice[id]=CALL.ice[id]||[]).push(c)}}catch(e){}}
+function closePeer(id){if(!CALL)return;const pc=CALL.pcs[id];if(pc)pc.close();delete CALL.pcs[id];const t=document.getElementById("bt_"+id);if(t)t.remove()}
+function updCtl(){const st=CALL&&CALL.stream,a=st&&st.getAudioTracks()[0],v=st&&st.getVideoTracks()[0];
+ $("#bmic").style.display=a?"":"none";$("#bcam").style.display=v?"":"none";
+ $("#bmic").textContent=a&&a.enabled?"🎤":"🔇";$("#bcam").textContent=v&&v.enabled?"📷":"🚫";
+ const sh=$("#bshare"),ok=!!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia);sh.style.display=ok?"":"none";sh.textContent=CALL&&CALL.share?"⏹ Stop sharing":"🖥 Share screen";
+ const sel=$("#blink");if(!CALL){return}
+ sel.innerHTML='<option value="">Link to a Bowl…</option>'+myGroups().filter(g=>g.bag!=CALL.code).map(g=>`<option value="${g.id}">🍊 ${esc(g.name)}</option>`).join("")}
+async function renego(id){try{const pc=CALL&&CALL.pcs[id];if(!pc)return;const o=await pc.createOffer();await pc.setLocalDescription(o);sig(id,"offer",JSON.stringify(pc.localDescription))}catch(e){}}
+function stopShare(){if(!CALL||!CALL.share)return;const ds=CALL.share,tr=ds.getVideoTracks()[0],cam=CALL.stream&&CALL.stream.getVideoTracks()[0];CALL.share=null;ds.getTracks().forEach(t=>t.stop());
+ Object.values(CALL.pcs).forEach(pc=>{const s=pc.getSenders().find(x=>x.track===tr);if(s)s.replaceTrack(cam||null).catch(()=>{})});
+ const t=document.getElementById("bt_"+CALL.me);if(t)t.querySelector("video").srcObject=CALL.stream||null;updCtl();bmsg("")}
+async function shareToggle(){if(!CALL)return;if(CALL.share){stopShare();return}
+ if(!(navigator.mediaDevices&&navigator.mediaDevices.getDisplayMedia)){toast("Screen sharing isn't supported on this device");return}
+ let ds;try{ds=await navigator.mediaDevices.getDisplayMedia({video:true})}catch(e){toast("Screen sharing was cancelled or blocked");return}
+ if(!CALL){ds.getTracks().forEach(t=>t.stop());return}
+ const tr=ds.getVideoTracks()[0];CALL.share=ds;tr.onended=stopShare;tile(CALL.me,DB.accounts[CALL.me].name,ds,true);
+ for(const[id,pc]of Object.entries(CALL.pcs)){const s=pc.getSenders().find(x=>x.track&&x.track.kind=="video");
+  if(s){try{await s.replaceTrack(tr)}catch(e){}}else{try{pc.addTrack(tr,ds);renego(id)}catch(e){}}}
+ updCtl();bmsg("You're sharing your screen.")}
+document.addEventListener("click",e=>{if(e.target.closest("#bshare"))shareToggle()});
+async function bagStart(code){
+ if(!DBX||netState!="on"){toast("Calls need the shared mailbox. Open this page signed in to Claude.");return}
+ if(!window.RTCPeerConnection||!navigator.mediaDevices){toast("This browser can't make calls");return}
+ if(CALL)await bagLeave();
+ const me=DB.current,name=DB.accounts[me].name,base="bag/"+code;
+ $("#bagov").style.display="flex";$("#bagcode").textContent=code;$("#bgrid").innerHTML="";bmsg("Starting…");
+ let stream=null;
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:true,video:true})}catch(e){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});bmsg("Camera unavailable, so you joined with audio only.")}catch(e2){bmsg("Couldn't use your camera or microphone, so you joined as a listener. This page may not have permission.")}}
+ CALL={code,me,stream,pcs:{},names:{},ice:{},subs:[]};
+ tile(me,name,stream,true);updCtl();
+ const beat=()=>DBX.doc(base+"/p/"+me).set({name,t:Date.now()}).catch(()=>{});
+ await beat();CALL.hb=setInterval(beat,20000);
+ CALL.subs.push(DBX.collection(base+"/p").onSnapshot(snap=>{if(!CALL)return;
+  snap.docChanges().forEach(c=>{const id=c.doc.id;if(id==me)return;const d=c.doc.data()||{};
+   if(c.type=="removed"){closePeer(id);return}
+   if(c.type=="added"&&Date.now()-(d.t||0)<60000){CALL.names[id]=d.name;if(me>id&&!CALL.pcs[id])makeOffer(id)}});
+  if(!Object.keys(CALL.pcs).length&&!(CALL.stream==null&&$("#bagmsg").textContent))bmsg("Waiting for others to join. Share the code "+code+".")},()=>{}));
+ CALL.subs.push(DBX.collection(base+"/sig").where("to","==",me).onSnapshot(snap=>{snap.docChanges().forEach(c=>{if(c.type!="added")return;const d=c.doc.data();DBX.doc(base+"/sig/"+c.doc.id).delete().catch(()=>{});if(Date.now()-(d.t||0)<60000)handleSig(d)})},()=>{}))}
+async function bagLeave(){const c=CALL;if(!c)return;CALL=null;clearInterval(c.hb);c.subs.forEach(f=>f&&f());Object.values(c.pcs).forEach(p=>p.close());
+ if(c.stream)c.stream.getTracks().forEach(t=>t.stop());if(c.share)c.share.getTracks().forEach(t=>t.stop());try{await DBX.doc("bag/"+c.code+"/p/"+c.me).delete()}catch(e){}
+ $("#bagov").style.display="none";$("#bgrid").innerHTML=""}
+window.addEventListener("beforeunload",()=>{if(CALL&&DBX)DBX.doc("bag/"+CALL.code+"/p/"+CALL.me).delete()});
+function ringTo(u,code){if(DBX)DBX.collection("ring").add({to:u,from:DB.current,fromName:DB.accounts[DB.current].name,code,t:Date.now()}).catch(()=>{})}
+function ringBowl(g){const o=g.members.filter(u=>u!=DB.current);o.forEach(u=>ringTo(u,g.bag));toast(o.length?"Ringing "+o.length+(o.length==1?" person":" people"):"No one else is in this bowl yet")}
+function showRing(d){const e=$("#ringb");e.innerHTML=`<b>${esc(d.fromName||d.from)}</b> is calling you<div class="seg" style="justify-content:center;margin-top:12px"><button class="send" id="ringans" data-code="${esc(d.code)}">Answer</button><button id="ringx">Decline</button></div>`;e.style.display="block";clearTimeout(e._t);e._t=setTimeout(()=>e.style.display="none",40000)}
+function renderBagLobby(){const gs=myGroups();
+ $("#pane").innerHTML=`<div class="bar"><b>Oranges in a Bag</b></div><div class="bl"><p class="lb" style="margin:0">Start a video call, or join one with a code, like Google Meet.</p>
+ <div class="bcard"><b>Start a Bag</b><p>Open a new call and share the code with people.</p><button class="send" id="bnew">Start a Bag</button></div>
+ <div class="bcard"><b>Join with a code</b><div class="row2"><input id="bjc" placeholder="abc-defg-hij" aria-label="Bag code" autocapitalize="none"><button class="send" id="bjoin">Join</button></div></div>
+ <div class="bcard"><b>Call someone</b><div class="row2"><input id="bcu" placeholder="Username or name@oj.mail" aria-label="Who to call" autocapitalize="none"><button class="send" id="bcall">Call</button></div></div>
+ <div class="bcard"><b>Bowls and Bags</b><p>Link a Bag to a Bowl so everyone in the Bowl can jump in.</p>${gs.length?gs.map(g=>`<div class="brow"><span>🍊 ${esc(g.name)}${g.bag?` <small>${esc(g.bag)}</small>`:""}</span><span>${g.bag?`<button data-bl="join:${g.id}">Join</button> <button data-bl="ring:${g.id}">Ring members</button>`:`<button data-bl="make:${g.id}">Link a new Bag</button>`}</span></div>`).join(""):`<p class="lb" style="margin:0">You're not in any bowls yet.</p>`}</div></div>`}
+function bowlBag(g){if(!g.bag){g.bag=mkcode();bpush(g);booPost(g,"started a Bag call",g.bag);ringBowl(g)}bagStart(g.bag)}
+function booPost(g,text,code){const m={id:uid(),from:DB.current,name:DB.accounts[DB.current].name,text,t:Date.now(),bag:code||undefined};g.msgs.push(m);
+ if(DBX&&netState=="on"){if(!g.sync)bpush(g);DBX.doc("boo/"+g.id+"/msgs/"+m.id).set({from:m.from,name:m.name,text,t:m.t,bag:code||""}).catch(()=>{})}render()}
+document.addEventListener("click",async e=>{const t=e.target;let b;
+ if(t.closest("#bnew")){bagStart(mkcode());return}
+ if(t.closest("#bjoin")){const c=$("#bjc").value.trim().toLowerCase();if(!/^[a-z]{3}-[a-z]{4}-[a-z]{3}$/.test(c)){toast("Enter a code like abc-defg-hij");return}bagStart(c);return}
+ if(t.closest("#bcall")){const u=$("#bcu").value.trim().toLowerCase().replace(/@oj\.mail$/,"");
+  if(!/^[a-z0-9._]{3,30}$/.test(u)){toast("Enter a valid username");return}
+  if(!DBX||netState!="on"){toast("Calls need the shared mailbox. Open this page signed in to Claude.");return}
+  let ok=false;try{ok=(await DBX.doc("directory/"+u).get()).exists}catch(x){}
+  if(!ok){toast("No Orange Mail account named "+u+"@oj.mail");return}
+  const c=mkcode();ringTo(u,c);toast("Calling "+u+"…");bagStart(c);return}
+ if(b=t.closest("[data-bl]")){const[k,id]=b.dataset.bl.split(":"),g=DB.boo[id];if(!g)return;
+  if(k=="join")bagStart(g.bag);else if(k=="ring")ringBowl(g);
+  else{g.bag=mkcode();bpush(g);booPost(g,"linked a Bag",g.bag);toast("Bag linked to "+g.name)}return}
+ if(t.closest("#boobag")){const g=DB.boo[curBoo];if(g)bowlBag(g);return}
+ if(b=t.closest("[data-jb]")){bagStart(b.dataset.jb);return}
+ if(t.closest("#bleave")){bagLeave();return}
+ if(t.closest("#bagcopy")){try{await navigator.clipboard.writeText($("#bagcode").textContent);toast("Code copied")}catch(x){toast("Code: "+$("#bagcode").textContent)}return}
+ if(t.closest("#bmic")&&CALL&&CALL.stream){CALL.stream.getAudioTracks().forEach(x=>x.enabled=!x.enabled);updCtl();return}
+ if(t.closest("#bcam")&&CALL&&CALL.stream){CALL.stream.getVideoTracks().forEach(x=>x.enabled=!x.enabled);updCtl();return}
+ if(t.id=="ringans"){$("#ringb").style.display="none";bagStart(t.dataset.code);return}
+ if(t.id=="ringx"){$("#ringb").style.display="none";return}});
+document.addEventListener("change",e=>{if(e.target.id!="blink"||!e.target.value||!CALL)return;const g=DB.boo[e.target.value];
+ if(g){g.bag=CALL.code;bpush(g);booPost(g,"linked a Bag",g.bag);toast("Bag linked to "+g.name);updCtl()}});
+$("#auth").addEventListener("keydown",e=>{if(e.key=="Enter"&&e.target.tagName=="INPUT")submitAuth()});
+netInit();
+if(DB.current&&DB.accounts[DB.current])login(DB.current);else showAuth(Object.keys(DB.accounts).length?"in":"up");
+</script>
+</body>
+</html>
